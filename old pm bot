@@ -1,0 +1,57 @@
+Old PM bot
+
+var waitTime = 1; // In seconds
+var group = 2648601; // 0 for no group check, otherwise people in this group will not receive the message
+function sendMsg(userId, username) {
+   function send() {
+       $.post('//www.roblox.com/messages/send',{
+           subject: "Subject",
+           body: "Line 1 \n\ Line 2 \n\ Greeting \n\ Body",
+           recipientid: userId,
+           cacheBuster: new Date().getTime()
+       }).done(function(response) {
+           if (response.success == true) {
+               console.log('Sent message to ' + username + ' (' + userId + ')');
+           } else {
+               console.log('Error sending to ' + username + ': ' + response.shortMessage);
+           }
+       });
+   }
+   if (group > 0) {
+       $.get('//www.roblox.com/Game/LuaWebService/HandleSocialRequest.ashx?method=IsInGroup&playerid=' + userId + '&groupid=' + group, function(response) {
+           if(response.indexOf('true') == -1) {
+               send();
+           } else {
+               console.log('Didn\'t send a message to ' + username + ' because he is already in group ' + group + '.');
+           }
+       });
+   } else {
+       send();
+   }
+}
+
+function run() {
+   var timeout = 0;
+   var elements = document.evaluate('//div[contains(@id,\'ctl00_cphRoblox_rbxGroupRoleSetMembersPane_GroupMembersUpdatePanel\')]//div[contains(@class,\'GroupMember\')]//span[contains(@class,\'Name\')]/a',document,null,XPathResult.UNORDERED_NODE_ITERATOR_TYPE,null);
+   var currentNode = elements.iterateNext();
+   while (currentNode) {
+       (function(time,id,name) {
+           setTimeout(sendMsg,time,id,name);
+       })(timeout,currentNode.href.match(/\d+/)[0],currentNode.textContent);
+       timeout+=waitTime*1000;
+       currentNode = elements.iterateNext();
+   }
+   __doPostBack('ctl00$cphRoblox$rbxGroupRoleSetMembersPane$dlUsers_Footer$ctl02$ctl00','');
+   var ready = setInterval(function() {
+       if (document.getElementById('__EVENTTARGET').value == '') {
+           clearInterval(ready);
+           setTimeout(run,timeout);
+       }
+   }, 10);
+}
+var ready = setInterval(function() {
+   if (document.readyState === 'complete') {
+       clearInterval(ready);
+       run();
+   }
+}, 10);
